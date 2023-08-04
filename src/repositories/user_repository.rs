@@ -1,6 +1,10 @@
 use sqlx::{Pool, Postgres};
 
-use crate::{db, entities::user_request::UserRequest, models::user::User};
+use crate::{
+    db,
+    entities::{login_request::LoginRequest, user_request::UserRequest},
+    models::user::User,
+};
 
 pub async fn get_all() -> Vec<User> {
     let pool: Pool<Postgres> = db().await;
@@ -24,7 +28,7 @@ pub async fn add(request: UserRequest) -> User {
         ) VALUES (
             $1,
             crypt($2, gen_salt('bf')),
-            $3,
+            crypt($3, gen_salt('bf')),
             $4,
             $5
         ) RETURNING *;
@@ -34,6 +38,26 @@ pub async fn add(request: UserRequest) -> User {
         request.email,
         chrono::offset::Utc::now(),
         chrono::offset::Utc::now(),
+    )
+    .fetch_one(&pool)
+    .await
+    .expect("error with query")
+}
+
+pub async fn login(request: LoginRequest) -> User {
+    let pool: Pool<Postgres> = db().await;
+    sqlx::query_as!(
+        User,
+        "
+        UPDATE users 
+        SET last_login = $1
+        WHERE email = crypt($2, email)
+        AND password = crypt($3, password)
+        RETURNING *;
+        ",
+        chrono::offset::Utc::now(),
+        request.email,
+        request.password,
     )
     .fetch_one(&pool)
     .await

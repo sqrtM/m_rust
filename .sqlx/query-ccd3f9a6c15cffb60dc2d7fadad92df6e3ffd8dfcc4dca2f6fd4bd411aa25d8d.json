@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        INSERT INTO users (\n            username,\n            password,\n            email,\n            created_on,\n            last_login\n        ) VALUES (\n            $1,\n            crypt($2, gen_salt('bf')),\n            $3,\n            $4,\n            $5\n        ) RETURNING *;\n        ",
+  "query": "\n        INSERT INTO users (\n            username,\n            password,\n            email,\n            created_on,\n            last_login\n        ) VALUES (\n            $1,\n            crypt($2, gen_salt('bf')),\n            crypt($3, gen_salt('bf')),\n            $4,\n            $5\n        ) RETURNING *;\n        ",
   "describe": {
     "columns": [
       {
@@ -38,7 +38,7 @@
       "Left": [
         "Varchar",
         "Text",
-        "Varchar",
+        "Text",
         "Timestamptz",
         "Timestamptz"
       ]
@@ -52,5 +52,5 @@
       false
     ]
   },
-  "hash": "bf562b2eb9d0aa2731c3ffb4d7fd1dc7e7c095d15cf9ba395cb8e16b09294f54"
+  "hash": "ccd3f9a6c15cffb60dc2d7fadad92df6e3ffd8dfcc4dca2f6fd4bd411aa25d8d"
 }
