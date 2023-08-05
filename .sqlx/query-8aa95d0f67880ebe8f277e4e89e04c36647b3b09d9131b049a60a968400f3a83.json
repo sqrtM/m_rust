@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO users (\n            username,\n            password,\n            email,\n            created_on,\n            last_login\n        ) VALUES (\n            $1,\n            crypt($2, gen_salt('bf')),\n            crypt($3, gen_salt('bf')),\n            $4,\n            $5\n        );\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "Text",
+        "Text",
+        "Timestamptz",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "8aa95d0f67880ebe8f277e4e89e04c36647b3b09d9131b049a60a968400f3a83"
+}

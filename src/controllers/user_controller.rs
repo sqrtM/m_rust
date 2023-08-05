@@ -13,9 +13,11 @@ pub async fn get_all_users() -> Json<Vec<User>> {
 }
 
 #[post("/", format = "json", data = "<request>")]
-pub async fn add_user(request: Json<UserRequest>) -> Json<User> {
-    let created_user: User = add(request.0).await;
-    Json(created_user)
+pub async fn add_user(request: Json<UserRequest>) -> String {
+        match add(&request.0).await {
+            Ok(_) => "200".to_string(),
+            Err(_) => "400".to_string(),
+        }
 }
 
 #[post("/login", format = "json", data = "<request>")]
