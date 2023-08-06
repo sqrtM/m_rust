@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        UPDATE users \n        SET last_login = $1\n        WHERE email = crypt($2, email)\n        AND password = crypt($3, password)\n        RETURNING username;\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "username",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Timestamptz",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "a2b1bda75a98b63d8b14c747136a27cafc3c5dde815290e0411a9556a8034c0a"
+}

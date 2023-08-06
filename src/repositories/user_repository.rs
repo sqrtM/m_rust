@@ -5,6 +5,11 @@ use crate::{
     entities::{login_request::LoginRequest, user_request::UserRequest},
     models::user::User,
 };
+use crate::entities::user_error::UserError;
+
+struct Username {
+    username: String,
+}
 
 pub async fn get_all() -> Vec<User> {
     let pool: Pool<Postgres> = db().await;
@@ -14,56 +19,59 @@ pub async fn get_all() -> Vec<User> {
         .expect("error with query")
 }
 
-pub async fn add(request: &UserRequest) -> Result<u64, String> {
+pub async fn add(request: &UserRequest) -> Result<String, UserError> {
     let pool: Pool<Postgres> = db().await;
-    match check_duplicate_emails(&request.email, &pool).await {
-        Ok(_) => Ok(insert_new_user(&request, &pool).await?),
-        Err(_) => Err("Given Email is already in use!".to_string()),
-    }
+    check_duplicate_emails(&request.email, &pool).await?;
+    insert_new_user(&request, &pool).await
 }
 
-pub async fn login(request: LoginRequest) -> User {
+pub async fn login(request: LoginRequest) -> Result<String, UserError> {
     let pool: Pool<Postgres> = db().await;
-    sqlx::query_as!(
-        User,
+    match sqlx::query_as!(
+        Username,
         "
         UPDATE users 
         SET last_login = $1
         WHERE email = crypt($2, email)
         AND password = crypt($3, password)
-        RETURNING *;
+        RETURNING username;
         ",
         chrono::offset::Utc::now(),
         request.email,
         request.password,
     )
-        .fetch_one(&pool)
-        .await
-        .expect("error with query")
+        .fetch_all(&pool)
+        .await {
+        Ok(res) => match res.len() {
+            0 => Err(UserError::UserNotFound),
+            1 => match res.get(0) {
+                None => Err(UserError::UserNotFound),
+                Some(user) => Ok(user.username.clone())
+            },
+            _ => Err(UserError::DuplicateEmail)
+        },
+        Err(_) => Err(UserError::FatalQueryError)
+    }
 }
 
-struct UserId {
-    user_id: i32,
-}
-
-async fn check_duplicate_emails(email: &str, pool: &Pool<Postgres>) -> Result<(), String> {
+async fn check_duplicate_emails(email: &str, pool: &Pool<Postgres>) -> Result<(), UserError> {
     match sqlx::query_as!(
-        UserId,
+        Username,
         "
-        SELECT user_id
+        SELECT username
         FROM users
         WHERE email = crypt($1, email);
         ",
         email
     ).fetch_one(pool).await {
-        Ok(_) => Err("Email already taken!".to_string()),
+        Ok(_) => Err(UserError::EmailTaken),
         Err(_) => Ok(())
     }
 }
 
-async fn insert_new_user(request: &UserRequest, pool: &Pool<Postgres>) -> Result<u64, String> {
+async fn insert_new_user(request: &UserRequest, pool: &Pool<Postgres>) -> Result<String, UserError> {
     match sqlx::query_as!(
-        User,
+        Username,
         "
         INSERT INTO users (
             username,
@@ -77,7 +85,8 @@ async fn insert_new_user(request: &UserRequest, pool: &Pool<Postgres>) -> Result
             crypt($3, gen_salt('bf')),
             $4,
             $5
-        );
+        )
+        RETURNING username;
         ",
         request.username,
         request.password,
@@ -85,9 +94,9 @@ async fn insert_new_user(request: &UserRequest, pool: &Pool<Postgres>) -> Result
         chrono::offset::Utc::now(),
         chrono::offset::Utc::now(),
     )
-        .execute(pool)
+        .fetch_one(pool)
         .await {
-        Ok(res) => Ok(res.rows_affected()),
-        Err(e) => Err("Username already Taken".to_string()),
+        Ok(user) => Ok(user.username.clone()),
+        Err(_) => Err(UserError::UsernameTaken),
     }
 }
