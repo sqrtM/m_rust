@@ -1,4 +1,3 @@
-use rocket::response::Responder;
 use rocket::serde::json::Json;
 
 use crate::{
@@ -7,6 +6,22 @@ use crate::{
     repositories::user_repository::{add, get_all, login},
 };
 use crate::entities::user_response::UserResponse;
+use rocket::http::{Cookie, CookieJar};
+use crate::entities::user_error::UserError;
+
+
+#[derive(Responder)]
+#[response(content_type = "json")]
+pub enum ResponseStatus<T> {
+    #[response(status = 200)]
+    Accepted(T),
+    #[response(status = 405)]
+    BadRequest(T),
+    #[response(status = 404)]
+    NotFound(T),
+    #[response(status = 500)]
+    ServerError(T),
+}
 
 #[get("/")]
 pub async fn get_all_users() -> Json<Vec<User>> {
@@ -14,52 +29,51 @@ pub async fn get_all_users() -> Json<Vec<User>> {
     Json(users)
 }
 
-#[derive(Responder)]
-#[response(content_type = "json")]
-pub enum AddUserResponse {
-    #[response(status = 200)]
-    Accepted(UserResponse),
-    #[response(status = 400)]
-    Rejected(UserResponse),
-}
-
 #[post("/", format = "json", data = "<request>")]
-pub async fn add_user(request: Json<UserRequest>) -> AddUserResponse {
+pub async fn add_user(request: Json<UserRequest>, jar: &CookieJar<'_>) -> ResponseStatus<Json<UserResponse>> {
     match add(&request.0).await {
         Ok(username) => {
-            AddUserResponse::Accepted(UserResponse {
+            set_login_cookie(&username, jar);
+            ResponseStatus::Accepted(Json(UserResponse {
                 message: format!("User {} successfully created!", username)
-            })
+            }))
         }
-        Err(e) => {
-            AddUserResponse::Rejected(UserResponse {
-                message: e.message()
-            })
-        }
+        Err(e) => handle_error(e)
     }
-}
-
-#[derive(Responder)]
-#[response(content_type = "json")]
-pub enum LoginUserResponse {
-    #[response(status = 200)]
-    Accepted(UserResponse),
-    #[response(status = 404)]
-    NotFound(UserResponse),
 }
 
 #[post("/login", format = "json", data = "<request>")]
-pub async fn login_user(request: Json<LoginRequest>) -> LoginUserResponse {
+pub async fn login_user(request: Json<LoginRequest>, jar: &CookieJar<'_>) -> ResponseStatus<Json<UserResponse>> {
     match login(request.0).await {
         Ok(username) => {
-            LoginUserResponse::Accepted(UserResponse {
+            set_login_cookie(&username, jar);
+            ResponseStatus::Accepted(Json(UserResponse {
                 message: format!("User {} successfully logged in!", username)
-            })
+            }))
         }
-        Err(e) => {
-            LoginUserResponse::NotFound(UserResponse {
-                message: e.message()
-            })
-        }
+        Err(e) => handle_error(e)
     }
+}
+
+fn handle_error(e: UserError) -> ResponseStatus<Json<UserResponse>> {
+    match e {
+        UserError::FatalQueryError => ResponseStatus::ServerError(Json(UserResponse {
+            message: e.message()
+        })),
+        UserError::UserNotFound => ResponseStatus::NotFound(Json(UserResponse {
+            message: e.message()
+        })),
+        _ => ResponseStatus::BadRequest(Json(UserResponse {
+            message: e.message()
+        })),
+    }
+}
+
+fn set_login_cookie(username: &String, jar: &CookieJar<'_>) {
+    let cookie = Cookie::build("login", username.clone())
+        .domain("http://localhost:8000".to_string())
+        .path("/")
+        .http_only(true)
+        .finish();
+    jar.add(cookie);
 }
