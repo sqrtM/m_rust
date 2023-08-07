@@ -2,10 +2,11 @@ use sqlx::{Pool, Postgres};
 
 use crate::{
     db,
-    entities::{login_request::LoginRequest, user_request::UserRequest},
     models::user::User,
 };
-use crate::entities::user_error::UserError;
+use crate::entities::user::login_request::LoginRequest;
+use crate::entities::user::user_error::UserError;
+use crate::entities::user::user_request::UserRequest;
 
 struct Username {
     username: String,
