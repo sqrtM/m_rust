@@ -21,7 +21,8 @@ fn rocket() -> _ {
             routes![
                 controllers::user_controller::get_all_users,
                 controllers::user_controller::add_user,
-                controllers::user_controller::login_user
+                controllers::user_controller::login_user,
+                controllers::user_controller::login_user_with_cookie
             ],
         )
 }

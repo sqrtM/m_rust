@@ -9,7 +9,6 @@ pub enum UserError {
     UserNotFound,
     DuplicateEmail,
     FatalQueryError,
-    AuthenticationError,
 }
 
 impl Construct<UserResponse> for UserError {
@@ -20,7 +19,6 @@ impl Construct<UserResponse> for UserError {
             UserError::UserNotFound => "Email or password is incorrect!",
             UserError::DuplicateEmail => "Oh no, multiple users with this email exist. Panicking...",
             UserError::FatalQueryError => "Internal error finding what you were looking for... Sorry!",
-            UserError::AuthenticationError => "Authentication failure!"
         }.to_string()
     }
 
@@ -30,9 +28,6 @@ impl Construct<UserResponse> for UserError {
                 message: self.message()
             })),
             UserError::UserNotFound => ResponseStatus::NotFound(Json(UserResponse {
-                message: self.message()
-            })),
-            UserError::AuthenticationError => ResponseStatus::Unauthorized(Json(UserResponse {
                 message: self.message()
             })),
             _ => ResponseStatus::BadRequest(Json(UserResponse {

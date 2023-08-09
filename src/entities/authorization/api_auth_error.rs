@@ -9,11 +9,10 @@ use crate::entities::Construct;
 #[derive(Debug)]
 pub struct ApiKey<'r>(&'r str);
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub enum ApiAuthStatus {
     Missing,
     Invalid,
-    Accepted,
 }
 
 #[derive(Serialize, Responder, Debug)]
@@ -27,7 +26,6 @@ impl Construct<ApiAuthResponse> for ApiAuthStatus {
         match self {
             ApiAuthStatus::Missing => "No bearer token!",
             ApiAuthStatus::Invalid => "Invalid bearer token!",
-            ApiAuthStatus::Accepted => "Accepted!"
         }.to_string()
     }
 
@@ -37,9 +35,6 @@ impl Construct<ApiAuthResponse> for ApiAuthStatus {
                 message: self.message()
             })),
             ApiAuthStatus::Invalid => ResponseStatus::Unauthorized(Json(ApiAuthResponse {
-                message: self.message()
-            })),
-            ApiAuthStatus::Accepted => ResponseStatus::Accepted(Json(ApiAuthResponse {
                 message: self.message()
             })),
         }

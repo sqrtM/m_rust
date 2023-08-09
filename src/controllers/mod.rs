@@ -6,6 +6,8 @@ pub mod user_controller;
 #[response(content_type = "json")]
 pub enum ResponseStatus<T> {
     #[response(status = 200)]
+    AcceptedContent(T),
+    #[response(status = 200)]
     Accepted(T),
     #[response(status = 401)]
     Unauthorized(T),
@@ -23,5 +25,12 @@ fn set_login_cookie(username: &String, jar: &CookieJar<'_>) {
         .path("/")
         .http_only(true)
         .finish();
-    jar.add(cookie);
+    jar.add_private(cookie);
+}
+
+fn check_login_cookie(jar: &CookieJar) -> Result<String, ()> {
+    match jar.get_private("login") {
+        None => Err(()),
+        Some(cookie) => Ok(cookie.value().to_string())
+    }
 }

@@ -55,6 +55,33 @@ pub async fn login(request: LoginRequest) -> Result<String, UserError> {
     }
 }
 
+pub async fn login_with_cookie(username: String) -> Result<String, UserError> {
+    let pool: Pool<Postgres> = db().await;
+    match sqlx::query_as!(
+        Username,
+        "
+        UPDATE users
+        SET last_login = $1
+        WHERE username = $2
+        RETURNING username;
+        ",
+        chrono::offset::Utc::now(),
+        username
+    )
+        .fetch_all(&pool)
+        .await {
+        Ok(res) => match res.len() {
+            0 => Err(UserError::UserNotFound),
+            1 => match res.get(0) {
+                None => Err(UserError::UserNotFound),
+                Some(user) => Ok(user.username.clone())
+            },
+            _ => Err(UserError::DuplicateEmail)
+        },
+        Err(_) => Err(UserError::FatalQueryError)
+    }
+}
+
 async fn check_duplicate_emails(email: &str, pool: &Pool<Postgres>) -> Result<(), UserError> {
     match sqlx::query_as!(
         Username,
