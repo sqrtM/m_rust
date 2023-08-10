@@ -3,6 +3,7 @@ use crate::controllers::ResponseStatus;
 use crate::entities::Construct;
 use crate::entities::user::user_response::UserResponse;
 
+#[derive(Debug)]
 pub enum UserError {
     UsernameTaken,
     EmailTaken,

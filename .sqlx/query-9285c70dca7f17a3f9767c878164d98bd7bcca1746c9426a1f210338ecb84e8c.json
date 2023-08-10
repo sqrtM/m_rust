@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        UPDATE users \n        SET last_login = $1\n        WHERE email = crypt($2, email)\n        AND password = crypt($3, password)\n        RETURNING user_id;\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "user_id",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Timestamptz",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "9285c70dca7f17a3f9767c878164d98bd7bcca1746c9426a1f210338ecb84e8c"
+}

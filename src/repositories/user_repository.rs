@@ -12,6 +12,10 @@ struct Username {
     username: String,
 }
 
+struct UserId {
+    user_id: i32
+}
+
 pub async fn get_all() -> Vec<User> {
     let pool: Pool<Postgres> = db().await;
     sqlx::query_as!(User, "SELECT * FROM users")
@@ -20,22 +24,22 @@ pub async fn get_all() -> Vec<User> {
         .expect("error with query")
 }
 
-pub async fn add(request: &UserRequest) -> Result<String, UserError> {
+pub async fn add(request: &UserRequest) -> Result<i32, UserError> {
     let pool: Pool<Postgres> = db().await;
     check_duplicate_emails(&request.email, &pool).await?;
     insert_new_user(&request, &pool).await
 }
 
-pub async fn login(request: LoginRequest) -> Result<String, UserError> {
+pub async fn login(request: LoginRequest) -> Result<i32, UserError> {
     let pool: Pool<Postgres> = db().await;
     match sqlx::query_as!(
-        Username,
+        UserId,
         "
         UPDATE users 
         SET last_login = $1
         WHERE email = crypt($2, email)
         AND password = crypt($3, password)
-        RETURNING username;
+        RETURNING user_id;
         ",
         chrono::offset::Utc::now(),
         request.email,
@@ -47,34 +51,7 @@ pub async fn login(request: LoginRequest) -> Result<String, UserError> {
             0 => Err(UserError::UserNotFound),
             1 => match res.get(0) {
                 None => Err(UserError::UserNotFound),
-                Some(user) => Ok(user.username.clone())
-            },
-            _ => Err(UserError::DuplicateEmail)
-        },
-        Err(_) => Err(UserError::FatalQueryError)
-    }
-}
-
-pub async fn login_with_cookie(username: String) -> Result<String, UserError> {
-    let pool: Pool<Postgres> = db().await;
-    match sqlx::query_as!(
-        Username,
-        "
-        UPDATE users
-        SET last_login = $1
-        WHERE username = $2
-        RETURNING username;
-        ",
-        chrono::offset::Utc::now(),
-        username
-    )
-        .fetch_all(&pool)
-        .await {
-        Ok(res) => match res.len() {
-            0 => Err(UserError::UserNotFound),
-            1 => match res.get(0) {
-                None => Err(UserError::UserNotFound),
-                Some(user) => Ok(user.username.clone())
+                Some(user) => Ok(user.user_id)
             },
             _ => Err(UserError::DuplicateEmail)
         },
@@ -97,9 +74,10 @@ async fn check_duplicate_emails(email: &str, pool: &Pool<Postgres>) -> Result<()
     }
 }
 
-async fn insert_new_user(request: &UserRequest, pool: &Pool<Postgres>) -> Result<String, UserError> {
+async fn insert_new_user(request: &UserRequest, pool: &Pool<Postgres>) -> Result<i32, UserError> {
+
     match sqlx::query_as!(
-        Username,
+        UserId,
         "
         INSERT INTO users (
             username,
@@ -114,7 +92,7 @@ async fn insert_new_user(request: &UserRequest, pool: &Pool<Postgres>) -> Result
             $4,
             $5
         )
-        RETURNING username;
+        RETURNING user_id;
         ",
         request.username,
         request.password,
@@ -124,7 +102,7 @@ async fn insert_new_user(request: &UserRequest, pool: &Pool<Postgres>) -> Result
     )
         .fetch_one(pool)
         .await {
-        Ok(user) => Ok(user.username.clone()),
+        Ok(user) => Ok(user.user_id),
         Err(_) => Err(UserError::UsernameTaken),
     }
 }

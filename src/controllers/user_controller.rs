@@ -12,7 +12,7 @@ use crate::entities::user::login_request::LoginRequest;
 use crate::entities::user::user_error::UserError;
 use crate::entities::user::user_request::UserRequest;
 use crate::entities::user::user_response::{UserResponse, UserResponseWith};
-use crate::repositories::user_repository::login_with_cookie;
+use crate::repositories::cookie_repository::login_with_cookie;
 
 #[get("/")]
 pub async fn get_all_users(
@@ -43,10 +43,10 @@ pub async fn get_all_users(
 #[post("/", format = "json", data = "<request>")]
 pub async fn add_user(request: Json<UserRequest>, jar: &CookieJar<'_>) -> ResponseStatus<Json<UserResponse>> {
     match add(&request.0).await {
-        Ok(username) => {
-            set_login_cookie(&username, jar);
+        Ok(user_id) => {
+            set_login_cookie(user_id, jar).await;
             ResponseStatus::Accepted(Json(UserResponse {
-                message: format!("User {} successfully created!", username)
+                message: format!("User {} successfully created!", user_id)
             }))
         }
         Err(e) => e.construct()
@@ -56,12 +56,12 @@ pub async fn add_user(request: Json<UserRequest>, jar: &CookieJar<'_>) -> Respon
 #[get("/login", format = "json")]
 pub async fn login_user_with_cookie(jar: &CookieJar<'_>) -> ResponseStatus<Json<UserResponse>> {
     match check_login_cookie(jar) {
-        Ok(username) => {
-            match login_with_cookie(username).await {
-                Ok(username) => {
-                    set_login_cookie(&username, jar);
+        Ok(cookie) => {
+            match login_with_cookie(&cookie).await {
+                Ok(user) => {
+                    set_login_cookie(user.user_id, jar).await;
                     ResponseStatus::Accepted(Json(UserResponse {
-                        message: format!("User {} successfully logged in (using a login cookie!!)!", username)
+                        message: format!("User {} successfully logged in (using a login cookie!!)!", user.username)
                     }))
                 }
                 Err(e) => e.construct()
@@ -74,10 +74,10 @@ pub async fn login_user_with_cookie(jar: &CookieJar<'_>) -> ResponseStatus<Json<
 #[post("/login", format = "json", data = "<request>")]
 pub async fn login_user(request: Json<LoginRequest>, jar: &CookieJar<'_>) -> ResponseStatus<Json<UserResponse>> {
     match login(request.0).await {
-        Ok(username) => {
-            set_login_cookie(&username, jar);
+        Ok(user_id) => {
+            set_login_cookie(user_id, jar).await;
             ResponseStatus::Accepted(Json(UserResponse {
-                message: format!("User {} successfully logged in!", username)
+                message: format!("User {} successfully logged in!", user_id)
             }))
         }
         Err(e) => e.construct()

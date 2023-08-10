@@ -1,4 +1,11 @@
+use std::time::SystemTime;
+
+use chrono::{DateTime, Utc};
+use rocket::config::SecretKey;
 use rocket::http::{Cookie, CookieJar};
+use rocket::time::OffsetDateTime;
+
+use crate::repositories::cookie_repository::register_new_login_cookie;
 
 pub mod user_controller;
 
@@ -19,11 +26,21 @@ pub enum ResponseStatus<T> {
     ServerError(T),
 }
 
-fn set_login_cookie(username: &String, jar: &CookieJar<'_>) {
-    let cookie = Cookie::build("login", username.clone())
+async fn set_login_cookie(user_id: i32, jar: &CookieJar<'_>) {
+    let secret_key = match SecretKey::generate() {
+        None => panic!("no secret key"),
+        Some(key) => key.to_string(),
+    };
+
+    let expires: DateTime<Utc> = register_new_login_cookie(&secret_key, user_id)
+        .await
+        .expect("TODO: panic message");
+
+    let cookie = Cookie::build("login", secret_key)
         .domain("http://localhost:8000".to_string())
         .path("/")
         .http_only(true)
+        .expires(OffsetDateTime::from(SystemTime::from(expires)))
         .finish();
     jar.add_private(cookie);
 }
