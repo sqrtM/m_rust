@@ -1,18 +1,18 @@
 use rocket::http::CookieJar;
 use rocket::serde::json::Json;
 
-use crate::controllers::{check_login_cookie, set_login_cookie, ResponseStatus};
-use crate::entities::authorization::api_auth_error::{ApiAuthResponse, ApiAuthStatus, ApiKey};
-use crate::entities::user::login_request::LoginRequest;
-use crate::entities::user::user_error::UserError;
-use crate::entities::user::user_request::UserRequest;
-use crate::entities::user::user_response::{UserResponse, UserResponseWith};
-use crate::entities::Construct;
-use crate::repositories::cookie_repository::login_with_cookie;
 use crate::{
     models::user::User,
     repositories::user_repository::{add, get_all, login},
 };
+use crate::controllers::{check_login_cookie, ResponseStatus, set_login_cookie};
+use crate::entities::authorization::api_auth_error::{ApiAuthResponse, ApiAuthStatus, ApiKey};
+use crate::entities::Construct;
+use crate::entities::user::login_request::LoginRequest;
+use crate::entities::user::user_error::UserError;
+use crate::entities::user::user_request::UserRequest;
+use crate::entities::user::user_response::{UserResponse, UserResponseWith};
+use crate::repositories::cookie_repository::login_with_cookie;
 
 #[get("/")]
 pub async fn get_all_users(
@@ -47,23 +47,19 @@ pub async fn add_user(
     }
 }
 
-#[get("/login", format = "json")]
+#[post("/login-cookie")]
 pub async fn login_user_with_cookie(jar: &CookieJar<'_>) -> ResponseStatus<Json<UserResponse>> {
     match check_login_cookie(jar) {
         Ok(cookie) => match login_with_cookie(&cookie).await {
             Ok(user) => {
                 set_login_cookie(user.user_id, jar).await;
                 ResponseStatus::Accepted(Json(UserResponse {
-                    message: format!(
-                        "User {} successfully logged in ({})!",
-                        user.username,
-                        &cookie
-                    ),
+                    message: cookie
                 }))
             }
             Err(e) => e.construct(),
         },
-        Err(_) => UserError::FatalQueryError.construct(),
+        Err(_) => UserError::NoCookie.construct(),
     }
 }
 

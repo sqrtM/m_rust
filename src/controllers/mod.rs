@@ -1,7 +1,7 @@
 use std::time::SystemTime;
 
 use chrono::{DateTime, Utc};
-use rocket::http::{Cookie, CookieJar};
+use rocket::http::{Cookie, CookieJar, SameSite};
 use rocket::time::OffsetDateTime;
 use uuid::Uuid;
 
@@ -25,7 +25,6 @@ pub enum ResponseStatus<T> {
 }
 
 async fn set_login_cookie(user_id: i32, jar: &CookieJar<'_>) {
-
     let uuid = Uuid::new_v4().as_hyphenated().to_string();
 
     let expires: DateTime<Utc> = register_new_login_cookie(&uuid, user_id)
@@ -33,10 +32,16 @@ async fn set_login_cookie(user_id: i32, jar: &CookieJar<'_>) {
         .expect("Error registering login cookie.");
 
     let cookie = Cookie::build("login", uuid)
-        .domain("http://localhost:8000".to_string())
-        .path("/")
-        .http_only(true)
-        .expires(OffsetDateTime::from(SystemTime::from(expires)))
+        .path("/users")
+        .secure(true)
+        .same_site(SameSite::None)
+        .expires(
+            OffsetDateTime::from(
+                SystemTime::from(
+                    expires
+                )
+            )
+        )
         .finish();
 
     jar.add_private(cookie);
@@ -45,6 +50,8 @@ async fn set_login_cookie(user_id: i32, jar: &CookieJar<'_>) {
 fn check_login_cookie(jar: &CookieJar) -> Result<String, ()> {
     match jar.get_private("login") {
         None => Err(()),
-        Some(cookie) => Ok(cookie.value().to_string()),
+        Some(cookie) => {
+            Ok(cookie.value().to_string())
+        }
     }
 }

@@ -9,6 +9,7 @@ pub enum UserError {
     EmailTaken,
     UserNotFound,
     DuplicateEmail,
+    NoCookie,
     FatalQueryError,
 }
 
@@ -20,7 +21,8 @@ impl Construct<UserResponse> for UserError {
             UserError::UserNotFound => "Email or password is incorrect!",
             UserError::DuplicateEmail => {
                 "Oh no, multiple users with this email exist. Panicking..."
-            }
+            },
+            UserError::NoCookie => "No Cookie Found!",
             UserError::FatalQueryError => {
                 "Internal error finding what you were looking for... Sorry!"
             }
