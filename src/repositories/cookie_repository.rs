@@ -1,10 +1,14 @@
-use chrono::{DateTime, Duration, Utc};
+use chrono::{DateTime, Utc};
 use sqlx::{Pool, Postgres};
+
 use crate::db;
 use crate::entities::user::user_error::UserError;
 use crate::models::user::User;
 
-pub async fn register_new_login_cookie(cookie: &str, user_id: i32) -> Result<DateTime<Utc>, UserError> {
+pub async fn register_new_login_cookie(
+    cookie: &str,
+    user_id: i32,
+) -> Result<DateTime<Utc>, UserError> {
     let pool: Pool<Postgres> = db().await;
     struct ExpiresAt {
         expires_at: DateTime<Utc>,
@@ -12,6 +16,7 @@ pub async fn register_new_login_cookie(cookie: &str, user_id: i32) -> Result<Dat
 
     match sqlx::query_as!(
         ExpiresAt,
+        // language=PostgreSQL
         "
         INSERT INTO
             login_cookies (
@@ -24,16 +29,21 @@ pub async fn register_new_login_cookie(cookie: &str, user_id: i32) -> Result<Dat
                         $2,
                         $3,
                         $4
-            ) RETURNING expires_at
+            ) ON CONFLICT (user_id) DO UPDATE
+              SET cookie = crypt($1, gen_salt('bf')),
+                  expires_at = $3
+              RETURNING expires_at
         ",
         cookie,
         user_id,
-        chrono::offset::Utc::now() + Duration::days(1),
+        chrono::offset::Utc::now() + chrono::Duration::days(1),
         chrono::offset::Utc::now(),
     )
-        .fetch_one(&pool).await {
+    .fetch_one(&pool)
+    .await
+    {
         Ok(res) => Ok(res.expires_at),
-        Err(_) => Err(UserError::FatalQueryError)
+        Err(_) => Err(UserError::FatalQueryError),
     }
 }
 
@@ -42,6 +52,7 @@ pub async fn login_with_cookie(cookie: &str) -> Result<User, UserError> {
 
     match sqlx::query_as!(
         User,
+        // language=PostgreSQL
         "
         SELECT
             users.user_id,
@@ -58,8 +69,11 @@ pub async fn login_with_cookie(cookie: &str) -> Result<User, UserError> {
             login_cookies.cookie = crypt($1, cookie)
         ",
         cookie
-    ).fetch_one(&pool).await {
+    )
+    .fetch_one(&pool)
+    .await
+    {
         Ok(user) => Ok(user),
-        Err(_) => Err(UserError::FatalQueryError)
+        Err(_) => Err(UserError::FatalQueryError),
     }
 }

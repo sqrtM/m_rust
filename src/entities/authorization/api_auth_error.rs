@@ -1,10 +1,10 @@
+use crate::controllers::ResponseStatus;
+use crate::entities::Construct;
 use rocket::http::Status;
-use rocket::Request;
 use rocket::request::{FromRequest, Outcome};
 use rocket::serde::json::Json;
 use rocket::serde::Serialize;
-use crate::controllers::ResponseStatus;
-use crate::entities::Construct;
+use rocket::Request;
 
 #[derive(Debug)]
 pub struct ApiKey<'r>(&'r str);
@@ -26,16 +26,17 @@ impl Construct<ApiAuthResponse> for ApiAuthStatus {
         match self {
             ApiAuthStatus::Missing => "No bearer token!",
             ApiAuthStatus::Invalid => "Invalid bearer token!",
-        }.to_string()
+        }
+        .to_string()
     }
 
     fn construct(&self) -> ResponseStatus<Json<ApiAuthResponse>> {
         match self {
             ApiAuthStatus::Missing => ResponseStatus::Unauthorized(Json(ApiAuthResponse {
-                message: self.message()
+                message: self.message(),
             })),
             ApiAuthStatus::Invalid => ResponseStatus::Unauthorized(Json(ApiAuthResponse {
-                message: self.message()
+                message: self.message(),
             })),
         }
     }

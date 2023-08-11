@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO\n            login_cookies (\n                        cookie,\n                        user_id,\n                        expires_at,\n                        created_on\n            ) VALUES (\n                        crypt($1, gen_salt('bf')),\n                        $2,\n                        $3,\n                        $4\n            ) ON CONFLICT (user_id) DO UPDATE\n              SET cookie = crypt($1, gen_salt('bf')),\n                  expires_at = $3\n              RETURNING expires_at\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "expires_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int4",
+        "Timestamptz",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "c80a2dabe4c2a5630dfabee35937e188ab462199094a2b2168971654be1e2a58"
+}

@@ -1,19 +1,16 @@
 use sqlx::{Pool, Postgres};
 
-use crate::{
-    db,
-    models::user::User,
-};
 use crate::entities::user::login_request::LoginRequest;
 use crate::entities::user::user_error::UserError;
 use crate::entities::user::user_request::UserRequest;
+use crate::{db, models::user::User};
 
 struct Username {
     username: String,
 }
 
 struct UserId {
-    user_id: i32
+    user_id: i32,
 }
 
 pub async fn get_all() -> Vec<User> {
@@ -34,6 +31,7 @@ pub async fn login(request: LoginRequest) -> Result<i32, UserError> {
     let pool: Pool<Postgres> = db().await;
     match sqlx::query_as!(
         UserId,
+        // language=PostgreSQL
         "
         UPDATE users 
         SET last_login = $1
@@ -45,39 +43,44 @@ pub async fn login(request: LoginRequest) -> Result<i32, UserError> {
         request.email,
         request.password,
     )
-        .fetch_all(&pool)
-        .await {
+    .fetch_all(&pool)
+    .await
+    {
         Ok(res) => match res.len() {
             0 => Err(UserError::UserNotFound),
             1 => match res.get(0) {
                 None => Err(UserError::UserNotFound),
-                Some(user) => Ok(user.user_id)
+                Some(user) => Ok(user.user_id),
             },
-            _ => Err(UserError::DuplicateEmail)
+            _ => Err(UserError::DuplicateEmail),
         },
-        Err(_) => Err(UserError::FatalQueryError)
+        Err(_) => Err(UserError::FatalQueryError),
     }
 }
 
 async fn check_duplicate_emails(email: &str, pool: &Pool<Postgres>) -> Result<(), UserError> {
     match sqlx::query_as!(
         Username,
+        // language=PostgreSQL
         "
         SELECT username
         FROM users
         WHERE email = crypt($1, email);
         ",
         email
-    ).fetch_one(pool).await {
+    )
+    .fetch_one(pool)
+    .await
+    {
         Ok(_) => Err(UserError::EmailTaken),
-        Err(_) => Ok(())
+        Err(_) => Ok(()),
     }
 }
 
 async fn insert_new_user(request: &UserRequest, pool: &Pool<Postgres>) -> Result<i32, UserError> {
-
     match sqlx::query_as!(
         UserId,
+        // language=PostgreSQL
         "
         INSERT INTO users (
             username,
@@ -100,8 +103,9 @@ async fn insert_new_user(request: &UserRequest, pool: &Pool<Postgres>) -> Result
         chrono::offset::Utc::now(),
         chrono::offset::Utc::now(),
     )
-        .fetch_one(pool)
-        .await {
+    .fetch_one(pool)
+    .await
+    {
         Ok(user) => Ok(user.user_id),
         Err(_) => Err(UserError::UsernameTaken),
     }
