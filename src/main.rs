@@ -25,6 +25,12 @@ fn rocket() -> _ {
                 controllers::user_controller::login_user_with_cookie
             ],
         )
+        .mount(
+            "/characters",
+            routes![
+                controllers::character_controller::get_all_characters
+            ]
+        )
 }
 
 async fn run_migrations(rocket: Rocket<Build>) -> fairing::Result<Rocket<Build>> {

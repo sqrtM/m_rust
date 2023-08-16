@@ -23,7 +23,7 @@ pub async fn get_all_users(
         Ok(_) => {
             let users: Box<Vec<User>> = Box::new(get_all().await);
             Ok(ResponseStatus::Accepted(Json(UserResponseWith {
-                message: "succ".to_string(),
+                message: "success".to_string(),
                 content: users,
             })))
         }

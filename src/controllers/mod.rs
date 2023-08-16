@@ -8,6 +8,7 @@ use uuid::Uuid;
 use crate::repositories::cookie_repository::register_new_login_cookie;
 
 pub mod user_controller;
+pub mod character_controller;
 
 #[derive(Responder)]
 #[response(content_type = "json")]

@@ -1,0 +1,62 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT * FROM characters",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "character_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "user_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "character_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "constitution",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "strength",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 5,
+        "name": "madness",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 6,
+        "name": "intelligence",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 7,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "45a8dc55a6f8d5913937afa396ddeb15b1148c2854c0484c8e561e8b4db08fe3"
+}

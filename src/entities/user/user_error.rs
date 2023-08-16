@@ -1,7 +1,8 @@
-use crate::controllers::ResponseStatus;
-use crate::entities::user::user_response::UserResponse;
-use crate::entities::Construct;
 use rocket::serde::json::Json;
+
+use crate::controllers::ResponseStatus;
+use crate::entities::Construct;
+use crate::entities::user::user_response::UserResponse;
 
 #[derive(Debug)]
 pub enum UserError {
@@ -21,13 +22,13 @@ impl Construct<UserResponse> for UserError {
             UserError::UserNotFound => "Email or password is incorrect!",
             UserError::DuplicateEmail => {
                 "Oh no, multiple users with this email exist. Panicking..."
-            },
+            }
             UserError::NoCookie => "No Cookie Found!",
             UserError::FatalQueryError => {
                 "Internal error finding what you were looking for... Sorry!"
             }
         }
-        .to_string()
+            .to_string()
     }
 
     fn construct(&self) -> ResponseStatus<Json<UserResponse>> {
